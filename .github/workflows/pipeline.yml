@@ -172,29 +172,26 @@ jobs:
           sed -i "s/test55-node-backend/$REPO_NAME/g" README.md || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" docker-compose.yml || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" docker-compose.production.yml || true
-      - name: Setup Husky
+
+      - name: Run Husky + Commitlint Check
         run: |
           cd ${{ github.event.inputs.repo_name }}
-          
-          # Ensure package.json exists
-          if [ ! -f package.json ]; then
-            echo " package.json not found in $(pwd)"
-            exit 1
-          fi
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions Bot"
-          # Install husky v9
-          npm install husky@9 --save-dev
-          # Initialize husky (creates .husky folder)
+
+          # Install husky + commitlint + lint-staged
+          npm install husky@9 @commitlint/cli @commitlint/config-conventional lint-staged --save-dev
+
+          # Init husky (creates .husky locally in runner only, not pushed)
           npx husky init
-          # Overwrite hooks manually
-          echo "npx commitlint --edit \$1" > .husky/commit-msg
-          chmod +x .husky/commit-msg
-          echo "npx lint-staged" > .husky/pre-commit
-          chmod +x .husky/pre-commit
-          git add package.json package-lock.json
-          git commit -m "chore: setup husky hooks" || true
-          git push origin main
+
+          # Add hooks
+          npx husky add .husky/commit-msg 'npx commitlint --edit $1'
+          npx husky add .husky/pre-commit 'npx lint-staged'
+
+          # Fake a commit to trigger hooks (like your GitLab logs)
+          echo "test file" > husky-test.txt
+          git add husky-test.txt
+          git commit -m "[skip ci]" || true
+
       - name: Push to New Repo
         run: |
           cd ${{ github.event.inputs.repo_name }}
