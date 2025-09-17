@@ -180,16 +180,19 @@ jobs:
           # Install husky + commitlint + lint-staged
           npm install husky@9 @commitlint/cli @commitlint/config-conventional lint-staged --save-dev
 
-          # Init husky (creates .husky locally in runner only, not pushed unless committed)
+          # Init husky (creates .husky directory)
           npx husky init
 
-          # Create commit-msg hook
-          echo 'npx commitlint --edit $1' > .husky/commit-msg
+          # Overwrite hooks (husky add is deprecated, so we write directly)
+          echo "npx commitlint --edit \$1" > .husky/commit-msg
           chmod +x .husky/commit-msg
 
-          # Create pre-commit hook
-          echo 'npx lint-staged' > .husky/pre-commit
+          echo "npx lint-staged" > .husky/pre-commit
           chmod +x .husky/pre-commit
+
+          # Configure git identity for commits
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Fake a commit to trigger hooks (like your GitLab logs)
           echo "test file" > husky-test.txt
