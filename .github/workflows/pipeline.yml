@@ -198,7 +198,7 @@ jobs:
           echo "npx lint-staged" > .husky/pre-commit
           chmod +x .husky/pre-commit
           git add .
-          git commit -m "[skip ci]" || true
+          git commit -m "chore: setup husky hooks [skip ci]" || true
           git push origin main
 
       - name: Create Develop Branch
