@@ -173,33 +173,7 @@ jobs:
           sed -i "s/test55-node-backend/$REPO_NAME/g" docker-compose.yml || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" docker-compose.production.yml || true
 
-      - name: Run Husky + Commitlint Check
-        run: |
-          cd ${{ github.event.inputs.repo_name }}
-
-          # Install husky + commitlint + lint-staged
-          npm install husky@9 @commitlint/cli @commitlint/config-conventional lint-staged --save-dev
-
-          # Init husky (creates .husky directory)
-          npx husky init
-
-          # Overwrite hooks (husky add is deprecated, so we write directly)
-          echo "npx commitlint --edit \$1" > .husky/commit-msg
-          chmod +x .husky/commit-msg
-
-          echo "npx lint-staged" > .husky/pre-commit
-          chmod +x .husky/pre-commit
-
-          # Configure git identity for commits
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Fake a commit to trigger hooks (like your GitLab logs)
-          echo "test file" > husky-test.txt
-          git add husky-test.txt
-          git commit -m "[skip ci]" || true
-
-      - name: Push to New Repo
+      - name: Push Initial Code
         run: |
           cd ${{ github.event.inputs.repo_name }}
           rm -rf .git
@@ -211,6 +185,20 @@ jobs:
           git add .
           git commit -m "[skip ci]"
           git push origin main
-          # Create and push develop branch
+
+      - name: Setup Husky and Commit Hooks
+        run: |
+          cd ${{ github.event.inputs.repo_name }}
+          npm install husky@9 --save-dev
+          npx husky init
+          npx husky add .husky/commit-msg 'npx commitlint --edit $1'
+          npx husky add .husky/pre-commit 'npx lint-staged'
+          git add .
+          git commit -m "[skip ci]" || true
+          git push origin main
+
+      - name: Create Develop Branch
+        run: |
+          cd ${{ github.event.inputs.repo_name }}
           git checkout -b develop
           git push origin develop
