@@ -190,9 +190,13 @@ jobs:
         run: |
           cd ${{ github.event.inputs.repo_name }}
           npm install husky@9 --save-dev
-          npx husky init
-          npx husky add .husky/commit-msg 'npx commitlint --edit $1'
-          npx husky add .husky/pre-commit 'npx lint-staged'
+          npx husky install
+          # create commit-msg hook
+          echo "npx commitlint --edit \$1" > .husky/commit-msg
+          chmod +x .husky/commit-msg
+          # create pre-commit hook
+          echo "npx lint-staged" > .husky/pre-commit
+          chmod +x .husky/pre-commit
           git add .
           git commit -m "[skip ci]" || true
           git push origin main
