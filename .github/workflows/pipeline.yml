@@ -67,7 +67,7 @@ jobs:
 
     steps:
       - name: Set Organization Variable
-        run: echo "ORG=ondc-demo-test" >> $GITHUB_ENV
+        run: echo "ORG=nmonga26" >> $GITHUB_ENV
 
       - name: Check if organization exists and create repo
         run: |
