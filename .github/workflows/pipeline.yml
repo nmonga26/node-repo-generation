@@ -3,18 +3,19 @@ name: Init New Repo with Template
 on:
   workflow_dispatch:
     inputs:
-      org_name:
-        description: "Name of the GitHub organization"
-        required: true
-        default: "ondc-official"
       repo_name:
         description: "Name of the new GitHub repo"
         required: true
       brief_description:
         description: "Short description of the repository"
         required: true
-      category:
-        description: "Select category"
+      select_template:
+        description: "Select template"
+        type: choice
+        options:
+          - node
+      select_category_topic:
+        description: "Select category topic"
         type: choice
         options:
           - specifications
@@ -26,8 +27,8 @@ on:
           - infrastructure
           - documentation
           - logs
-      subcategory:
-        description: "Select subcategory"
+      select_subcategory_topic:
+        description: "Select subcategory topic"
         type: choice
         options:
           - buyer-apps
@@ -37,8 +38,8 @@ on:
           - core-framework
           - services
           - mock-servers
-      domain:
-        description: "Select domain"
+      select_domain_topic:
+        description: "Select domain topic"
         type: choice
         options:
           - retail
@@ -48,8 +49,8 @@ on:
           - financial
           - mobility
           - education
-      type:
-        description: "Select type"
+      select_type_topic:
+        description: "Select type topic"
         type: choice
         options:
           - frontend
@@ -59,94 +60,73 @@ on:
           - library
           - tool
           - documentation
-      status:
-        description: "Select status"
-        type: choice
-        options:
-          - production
-          - beta
-          - alpha
-          - experimental
-          - deprecated
-          - archived
 
 jobs:
   create-repo:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set Organization Variable
+        run: echo "ORG=ondc-demo-test" >> $GITHUB_ENV
+
       - name: Check if organization exists and create repo
         run: |
-          ORG="${{ github.event.inputs.org_name }}"
+          ORG="${ORG}"
           REPO="${{ github.event.inputs.repo_name }}"
-
           echo "Checking org..."
           ORG_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/orgs/$ORG)
-
           if [ "$ORG_CHECK" -ne 200 ]; then
             echo " Org '$ORG' not found or no access."
             exit 1
           fi
-
           echo " Org exists."
-
           echo "Checking repo..."
           REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/$ORG/$REPO)
-
           if [ "$REPO_CHECK" -eq 200 ]; then
             echo " Repo '$REPO' already exists."
             exit 1
           fi
-
-          DESC="${REPO}: [${{ github.event.inputs.category }}/${{ github.event.inputs.subcategory }}] ${{ github.event.inputs.brief_description }} | status: ${{ github.event.inputs.status }} | domain: ${{ github.event.inputs.domain }}"
-
+          DESC="${REPO}: [${{ github.event.inputs.select_category_topic }}/${{ github.event.inputs.select_subcategory_topic }}] ${{ github.event.inputs.brief_description }} | domain: ${{ github.event.inputs.select_domain_topic }}"
           CREATE_RESP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/orgs/$ORG/repos \
             -d "{\"name\":\"$REPO\",\"private\":false,\"description\":\"$DESC\"}")
-
           if [ "$CREATE_RESP" -eq 201 ]; then
             echo " Repo created: $ORG/$REPO"
           else
             echo " Failed with status $CREATE_RESP"
             exit 1
           fi
-
       - name: Add Topics to Repository
         run: |
-          ORG="${{ github.event.inputs.org_name }}"
+          ORG="${ORG}"
           REPO="${{ github.event.inputs.repo_name }}"
-
-          TOPICS="[\"category-${{ github.event.inputs.category }}\",\"subcategory-${{ github.event.inputs.subcategory }}\",\"type-${{ github.event.inputs.type }}\",\"status-${{ github.event.inputs.status }}\",\"domain-${{ github.event.inputs.domain }}\"]"
-
+          TOPICS="[\"category-${{ github.event.inputs.select_category_topic }}\",\"subcategory-${{ github.event.inputs.select_subcategory_topic }}\",\"type-${{ github.event.inputs.select_type_topic }}\",\"domain-${{ github.event.inputs.select_domain_topic }}\"]"
           curl -X PUT \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/$ORG/$REPO/topics \
             -d "{\"names\": $TOPICS}"
-
           echo " Topics added: $TOPICS"
-
       - name: Install Yeoman
         run: npm install -g yo
 
       - name: Clone Template Repo
         run: |
-          git clone https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/nmonga26/node-template.git template-repo
-
+          ORG="${ORG}"
+          git clone https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/$ORG/node-template.git template-repo
       - name: Prepare Yeoman Generator
         run: |
           mkdir -p generator-ondc-nodets/generators/app/templates
           cp -r template-repo/* generator-ondc-nodets/generators/app/templates/
           cp -r template-repo/.[!.]* generator-ondc-nodets/generators/app/templates/ || true
-
           # package.json for generator
           cat > generator-ondc-nodets/package.json <<'EOF'
           {
@@ -159,12 +139,10 @@ jobs:
             }
           }
           EOF
-
           # index.js for generator
           mkdir -p generator-ondc-nodets/generators/app
           cat > generator-ondc-nodets/generators/app/index.js <<'EOF'
           const Generator = require('yeoman-generator');
-
           module.exports = class extends Generator {
             writing() {
               this.fs.copyTpl(
@@ -177,37 +155,58 @@ jobs:
             }
           }
           EOF
-
           cd generator-ondc-nodets
           npm install
           npm link
-
       - name: Generate Project with Yeoman
         run: |
           mkdir -p ${{ github.event.inputs.repo_name }}
           cd ${{ github.event.inputs.repo_name }}
           yo ondc-nodets --skip-install --force --no-insight
-
       - name: Update Project Files with Repo Name
         run: |
           cd ${{ github.event.inputs.repo_name }}
           REPO_NAME="${{ github.event.inputs.repo_name }}"
-
           sed -i "s/test55-node-backend/$REPO_NAME/g" package.json || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" package-lock.json || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" README.md || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" docker-compose.yml || true
           sed -i "s/test55-node-backend/$REPO_NAME/g" docker-compose.production.yml || true
-
+      - name: Setup Husky
+        run: |
+          cd ${{ github.event.inputs.repo_name }}
+          
+          # Ensure package.json exists
+          if [ ! -f package.json ]; then
+            echo " package.json not found in $(pwd)"
+            exit 1
+          fi
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions Bot"
+          # Install husky v9
+          npm install husky@9 --save-dev
+          # Initialize husky (creates .husky folder)
+          npx husky init
+          # Overwrite hooks manually
+          echo "npx commitlint --edit \$1" > .husky/commit-msg
+          chmod +x .husky/commit-msg
+          echo "npx lint-staged" > .husky/pre-commit
+          chmod +x .husky/pre-commit
+          git add package.json package-lock.json
+          git commit -m "chore: setup husky hooks" || true
+          git push origin main
       - name: Push to New Repo
         run: |
           cd ${{ github.event.inputs.repo_name }}
-          rm -rf .git  #  remove template's git history
+          rm -rf .git
           git init
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git branch -M main
-          git remote add origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.event.inputs.org_name }}/${{ github.event.inputs.repo_name }}.git
+          git remote add origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${ORG}/${{ github.event.inputs.repo_name }}.git
           git add .
           git commit -m "[skip ci]"
           git push origin main
+          # Create and push develop branch
+          git checkout -b develop
+          git push origin develop
