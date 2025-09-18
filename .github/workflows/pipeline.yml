@@ -19,6 +19,7 @@ on:
         type: choice
         required: false
         options:
+          - ""
           - specifications
           - reference-apps
           - automation-testing
@@ -33,6 +34,7 @@ on:
         type: choice
         required: false
         options:
+          - ""
           - buyer-apps
           - seller-apps
           - logistics-apps
@@ -45,6 +47,7 @@ on:
         type: choice
         required: false
         options:
+          - ""
           - retail
           - logistics
           - agriculture
@@ -57,6 +60,7 @@ on:
         type: choice
         required: false
         options:
+          - ""
           - frontend
           - backend
           - mobile
@@ -112,28 +116,32 @@ jobs:
         run: |
           ORG="${ORG}"
           REPO="${{ github.event.inputs.repo_name }}"
-
+ 
+          # start with empty list
           TOPICS="[]"
+
+          # add only if user selected something
           if [ -n "${{ github.event.inputs.select_category_topic }}" ]; then
-            TOPICS=$(echo $TOPICS | jq ". + [\"category-${{ github.event.inputs.select_category_topic }}\"]")
+          TOPICS=$(echo $TOPICS | jq '. + ["category-${{ github.event.inputs.select_category_topic }}"]')
           fi
           if [ -n "${{ github.event.inputs.select_subcategory_topic }}" ]; then
-            TOPICS=$(echo $TOPICS | jq ". + [\"subcategory-${{ github.event.inputs.select_subcategory_topic }}\"]")
+          TOPICS=$(echo $TOPICS | jq '. + ["subcategory-${{ github.event.inputs.select_subcategory_topic }}"]')
           fi
           if [ -n "${{ github.event.inputs.select_type_topic }}" ]; then
-            TOPICS=$(echo $TOPICS | jq ". + [\"type-${{ github.event.inputs.select_type_topic }}\"]")
+          TOPICS=$(echo $TOPICS | jq '. + ["type-${{ github.event.inputs.select_type_topic }}"]')
           fi
           if [ -n "${{ github.event.inputs.select_domain_topic }}" ]; then
-            TOPICS=$(echo $TOPICS | jq ". + [\"domain-${{ github.event.inputs.select_domain_topic }}\"]")
+          TOPICS=$(echo $TOPICS | jq '. + ["domain-${{ github.event.inputs.select_domain_topic }}"]')
           fi
 
+          # call GitHub API
           curl -X PUT \
-            -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/$ORG/$REPO/topics \
-            -d "{\"names\": $TOPICS}"
+          -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+          -H "Accept: application/vnd.github+json" \
+           https://api.github.com/repos/$ORG/$REPO/topics \
+          -d "{\"names\": $TOPICS}"
 
-          echo " Topics added: $TOPICS"
+    echo " Topics added: $TOPICS"
 
       - name: Install Yeoman
         run: npm install -g yo
