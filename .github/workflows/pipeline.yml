@@ -17,6 +17,7 @@ on:
       select_category_topic:
         description: "Select category topic"
         type: choice
+        required: false
         options:
           - specifications
           - reference-apps
@@ -30,6 +31,7 @@ on:
       select_subcategory_topic:
         description: "Select subcategory topic"
         type: choice
+        required: false
         options:
           - buyer-apps
           - seller-apps
@@ -41,6 +43,7 @@ on:
       select_domain_topic:
         description: "Select domain topic"
         type: choice
+        required: false
         options:
           - retail
           - logistics
@@ -52,6 +55,7 @@ on:
       select_type_topic:
         description: "Select type topic"
         type: choice
+        required: false
         options:
           - frontend
           - backend
