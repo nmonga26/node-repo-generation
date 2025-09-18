@@ -100,7 +100,20 @@ jobs:
             echo " Repo '$REPO' already exists."
             exit 1
           fi
-          DESC="${REPO}: [${{ github.event.inputs.select_category_topic }}/${{ github.event.inputs.select_subcategory_topic }}] ${{ github.event.inputs.brief_description }} | domain: ${{ github.event.inputs.select_domain_topic }}"
+
+          # Start with just brief description
+          DESC="${{ github.event.inputs.brief_description }}"
+
+          # Add category/subcategory if present
+          if [ -n "${{ github.event.inputs.select_category_topic }}" ] || [ -n "${{ github.event.inputs.select_subcategory_topic }}" ]; then
+            DESC="[${{ github.event.inputs.select_category_topic }}/${{ github.event.inputs.select_subcategory_topic }}] $DESC"
+          fi
+
+          # Add domain if present
+          if [ -n "${{ github.event.inputs.select_domain_topic }}" ]; then
+            DESC="$DESC | domain: ${{ github.event.inputs.select_domain_topic }}"
+          fi
+
           CREATE_RESP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
@@ -112,6 +125,8 @@ jobs:
             echo " Failed with status $CREATE_RESP"
             exit 1
           fi
+
+
       - name: Add Topics to Repository
         run: |
           ORG="${ORG}"
@@ -226,7 +241,7 @@ jobs:
           echo "npx lint-staged" > .husky/pre-commit
           chmod +x .husky/pre-commit
           git add .
-          git commit -m "[skip ci]"
+          git commit -m "[skip ci]" || true
           git push origin main
 
       - name: Create Develop Branch
