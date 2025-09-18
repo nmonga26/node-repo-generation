@@ -112,13 +112,29 @@ jobs:
         run: |
           ORG="${ORG}"
           REPO="${{ github.event.inputs.repo_name }}"
-          TOPICS="[\"category-${{ github.event.inputs.select_category_topic }}\",\"subcategory-${{ github.event.inputs.select_subcategory_topic }}\",\"type-${{ github.event.inputs.select_type_topic }}\",\"domain-${{ github.event.inputs.select_domain_topic }}\"]"
+
+          TOPICS="[]"
+          if [ -n "${{ github.event.inputs.select_category_topic }}" ]; then
+            TOPICS=$(echo $TOPICS | jq ". + [\"category-${{ github.event.inputs.select_category_topic }}\"]")
+          fi
+          if [ -n "${{ github.event.inputs.select_subcategory_topic }}" ]; then
+            TOPICS=$(echo $TOPICS | jq ". + [\"subcategory-${{ github.event.inputs.select_subcategory_topic }}\"]")
+          fi
+          if [ -n "${{ github.event.inputs.select_type_topic }}" ]; then
+            TOPICS=$(echo $TOPICS | jq ". + [\"type-${{ github.event.inputs.select_type_topic }}\"]")
+          fi
+          if [ -n "${{ github.event.inputs.select_domain_topic }}" ]; then
+            TOPICS=$(echo $TOPICS | jq ". + [\"domain-${{ github.event.inputs.select_domain_topic }}\"]")
+          fi
+
           curl -X PUT \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/$ORG/$REPO/topics \
             -d "{\"names\": $TOPICS}"
+
           echo " Topics added: $TOPICS"
+
       - name: Install Yeoman
         run: npm install -g yo
 
