@@ -102,32 +102,31 @@ jobs:
           fi
 
           # Start with just brief description
-DESC="${{ github.event.inputs.brief_description }}"
+          DESC="${{ github.event.inputs.brief_description }}"
 
-# Build prefix for category + subcategory if they exist
-PREFIX=""
-if [ -n "${{ github.event.inputs.select_category_topic }}" ] && [ "${{ github.event.inputs.select_category_topic }}" != "" ]; then
-  PREFIX="${{ github.event.inputs.select_category_topic }}"
-fi
+          # Build prefix for category + subcategory if they exist
+          PREFIX=""
+          if [ -n "${{ github.event.inputs.select_category_topic }}" ] && [ "${{ github.event.inputs.select_category_topic }}" != "" ]; then
+          PREFIX="${{ github.event.inputs.select_category_topic }}"
+          fi
 
-if [ -n "${{ github.event.inputs.select_subcategory_topic }}" ] && [ "${{ github.event.inputs.select_subcategory_topic }}" != "" ]; then
-  if [ -n "$PREFIX" ]; then
-    PREFIX="$PREFIX/${{ github.event.inputs.select_subcategory_topic }}"
-  else
-    PREFIX="${{ github.event.inputs.select_subcategory_topic }}"
-  fi
-fi
+          if [ -n "${{ github.event.inputs.select_subcategory_topic }}" ] && [ "${{ github.event.inputs.select_subcategory_topic }}" != "" ]; then
+          if [ -n "$PREFIX" ]; then
+          PREFIX="$PREFIX/${{ github.event.inputs.select_subcategory_topic }}"
+          else
+          PREFIX="${{ github.event.inputs.select_subcategory_topic }}"
+          fi
+          fi
 
-# Add prefix to description if we built one
-if [ -n "$PREFIX" ]; then
-  DESC="[$PREFIX] $DESC"
-fi
+          # Add prefix to description if we built one
+          if [ -n "$PREFIX" ]; then
+          DESC="[$PREFIX] $DESC"
+          fi
 
-# Add domain if selected
-if [ -n "${{ github.event.inputs.select_domain_topic }}" ] && [ "${{ github.event.inputs.select_domain_topic }}" != "" ]; then
-  DESC="$DESC | domain: ${{ github.event.inputs.select_domain_topic }}"
-fi
-
+          # Add domain if selected
+          if [ -n "${{ github.event.inputs.select_domain_topic }}" ] && [ "${{ github.event.inputs.select_domain_topic }}" != "" ]; then
+          DESC="$DESC | domain: ${{ github.event.inputs.select_domain_topic }}"
+          fi
 
           CREATE_RESP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
